@@ -3,7 +3,8 @@ import cors from "cors";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
-
+import bcrypt from "bcrypt";
+import { v4 as uuid } from "uuid";
 dotenv.config();
 
 const app = express();
@@ -39,8 +40,7 @@ app.post("/signup", async (req, res) => {
   try {
     const wallet = mongoClient.db("mywallet");
     const users = wallet.collection("users");
-
-    const online = await users.find({}).toArray();
+    const passwordHashed = bcrypt.hashSync(username.password, 10);
 
     const username = req.body;
 
@@ -54,14 +54,8 @@ app.post("/signup", async (req, res) => {
       }
       return;
     }
-    // await users.insertOne(username.name);
 
-    let newUser = {
-      name: username.name,
-      password: username.password,
-      email: username.email,
-    };
-    await users.insertOne(newUser);
+    await users.insertOne({ ...username, password: passwordHashed });
 
     res.sendStatus(201);
   } catch {
@@ -70,32 +64,30 @@ app.post("/signup", async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
+  const wallet = mongoClient.db("mywallet");
+  const users = wallet.collection("users");
+
+  const username = req.body;
+
+  const validation = loginSchema.validate(username, { abortEarly: true });
+
+  if (validation.error) {
+    {
+      res.status(422).send("Senha ou usuario incorreto");
+    }
+    return;
+  }
   try {
-    const wallet = mongoClient.db("mywallet");
-    const users = wallet.collection("users");
-
-    const online = await users.find({}).toArray();
-
-    const username = req.body;
-
-    const validation = loginSchema.validate(username, { abortEarly: true });
-
-    if (validation.error) {
-      {
-        res.status(422).send("Senha ou usuario incorreto");
-      }
+    const login = await users.findOne(username);
+    const Authorized = bcrypt.compareSync(password, username.password);
+    if (Authorized) {
+      const token = uuid();
+      res.status(200).send({ token });
       return;
     }
-    // await users.insertOne(username.name);
-
-    let newLogin = {
-      password: username.password,
-      email: username.email,
-    };
-    await users.insertOne(newLogin);
-
-    res.sendStatus(201);
-  } catch {
+    res.sendStatus(401);
+  } catch (error) {
+    console.log(error);
     res.sendStatus(500);
   }
 });
@@ -124,6 +116,13 @@ app.post("/entrada", async (req, res) => {
     );
     return;
   }
+  try {
+    await db.collection("buyings").insertOne(req.body);
+    res.sendStatus(201);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
 });
 
 app.post("/saida", async (req, res) => {
@@ -137,8 +136,15 @@ app.post("/saida", async (req, res) => {
     );
     return;
   }
+  try {
+    await db.collection("buyings").insertOne(req.body);
+    res.sendStatus(201);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
 });
 
-app.listen(5000, () => {
-  console.log("Rodando em http://localhost:5000");
+app.listen(process.env.PORT, () => {
+  console.log("Server running on port " + process.env.PORT);
 });
