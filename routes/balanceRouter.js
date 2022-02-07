@@ -9,8 +9,6 @@ import { validateExtractMiddleware } from "../middlewares/validateExtractMiddlew
 
 const balanceRouter = Router();
 
-balanceRouter.use(validateExtractMiddleware);
-
 balanceRouter.post("/entrada", validateExtractMiddleware, postDeposit);
 
 balanceRouter.post("/saida", validateExtractMiddleware, postWithdraw);
