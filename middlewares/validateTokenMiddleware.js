@@ -1,16 +1,18 @@
+import db from "../database.js";
+
 export async function validateTokenMiddleware(req, res, next) {
-  const auth = req.headers.authorization;
+  const authorization = req.headers.authorization;
   const token = authorization?.replace("Bearer ", "");
-  const wallet = mongoClient.db("mywallet");
+
   try {
-    const conection = await wallet.collection("conection").findOne(token);
+    const conection = await db.collection("conection").findOne({ token });
 
     if (!conection) {
       console.log("problema");
       return res.sendStatus(401);
     }
 
-    const user = await wallet
+    const user = await db
       .collection("users")
       .findOne({ _id: conection.userId });
     if (!user) {

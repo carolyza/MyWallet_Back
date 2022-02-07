@@ -1,17 +1,22 @@
 import { Router } from "express";
-import { deposit, withdraw } from "../Controllers/balanceController.js";
-import { validateTokenMiddleware } from "../middlewares/validateTokenMiddleware.js";
+import {
+  postDeposit,
+  postWithdraw,
+  getDeposit,
+  getWithdraw,
+} from "../Controllers/balanceController.js";
+import { validateExtractMiddleware } from "../middlewares/validateExtractMiddleware.js";
 
 const balanceRouter = Router();
 
-balanceRouter.use(validateTokenMiddleware);
+balanceRouter.use(validateExtractMiddleware);
 
-balanceRouter.post("/entrada", deposit);
+balanceRouter.post("/entrada", validateExtractMiddleware, postDeposit);
 
-balanceRouter.post("/saida", withdraw);
+balanceRouter.post("/saida", validateExtractMiddleware, postWithdraw);
 
-balanceRouter.get("/entrada", deposit);
+balanceRouter.get("/entrada", getDeposit);
 
-balanceRouter.get("/saida", withdraw);
+balanceRouter.get("/saida", getWithdraw);
 
 export default balanceRouter;

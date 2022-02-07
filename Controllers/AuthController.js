@@ -1,44 +1,42 @@
 import { v4 as uuid } from "uuid";
 import bcrypt from "bcrypt";
+import db from "../database.js";
 
 export async function signup(req, res) {
   try {
-    const wallet = mongoClient.db("mywallet");
-    const users = wallet.collection("users");
-    const passwordHashed = bcrypt.hashSync(username.password, 10);
+    const userInfo = req.body;
+    const users = db.collection("users");
+    const passwordHashed = bcrypt.hashSync(userInfo.password, 10);
 
-    const username = req.body;
-
-    const validation = userSchema.validate(username, { abortEarly: true });
-
-    if (validation.error) {
-      if (validation.error.details[0].type === "any.invalid") {
-        res.status(409).send("Usuário já existe");
-      } else {
-        res.status(422).send("Favor inserir um nome");
-      }
-      return;
-    }
-
-    await users.insertOne({ ...username, password: passwordHashed });
+    await users.insertOne({ ...userInfo, password: passwordHashed });
 
     res.sendStatus(201);
-  } catch {
+  } catch (error) {
+    console.log(error);
     res.sendStatus(500);
   }
 }
 
 export async function login(req, res) {
-  const wallet = mongoClient.db("mywallet");
-  const users = wallet.collection("users");
+  const users = db.collection("users");
 
-  const username = req.body;
+  const { email, password } = req.body;
+
   try {
-    const login = await users.findOne(username);
-    const Authorized = bcrypt.compareSync(password, username.password);
+    const login = await users.findOne({ email });
+    const name = login.name;
+    const Authorized = bcrypt.compareSync(password, login.password);
+
+    if (!login) {
+      res.sendStatus(401);
+      return;
+    }
+
     if (Authorized) {
       const token = uuid();
-      res.status(200).send({ token });
+      await db.collection("conection").insertOne({ token, idUser: login._id });
+      res.send({ name, token });
+
       return;
     }
     res.sendStatus(401);
